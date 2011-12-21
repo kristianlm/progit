@@ -870,6 +870,36 @@ Because the reflog data is kept in the `.git/logs/` directory, you effectively h
 
 In this case, you can see your missing commit after the dangling commit. You can recover it the same way, by adding a branch that points to that SHA.
 
+#### Data Recovery for added but not committed files ####
+
+I don't know markdown, nor do I have time to clean this up. Who knows,
+it may be useful though. Here we go:
+
+Let's say that you added a file to the git index but did not make a
+commit. You unstaged the file and then it got deleted. 
+
+This happened to me, I was in a middle of a merge without knowing
+it. So I added my change `X` to the index. So I realized I was in the
+middle of a merge, which I wanted to scratch, and I did a
+
+	$ git reset --merge
+
+For some reason, by change `X` disappeared from both my index and my
+working dir. There are probably a few other scenarios where things
+like this may happen.
+
+I though about this chapter of the book and remembered git made a blob
+in the internal database every time you do a `git add` (I added it
+through `git gui`, but that is the same thing). Looking through all
+the unreachable blob's in my database containing ClientSettings (the
+Java class I was working on), I ran:
+
+	$ git fsck --lost-found --unreachable|ruby -ne 'puts $1 if /blob (.*)$/' |xargs git show |grep ClientSettings -C100|less
+
+I was able to retrieve my index file and checkout it back out. Pretty
+neat! Note that the timestamp and filename is lost (it's just a blob,
+the raw file content).
+
 ### Removing Objects ###
 
 There are a lot of great things about Git, but one feature that can cause issues is the fact that a `git clone` downloads the entire history of the project, including every version of every file. This is fine if the whole thing is source code, because Git is highly optimized to compress that data efficiently. However, if someone at any point in the history of your project added a single huge file, every clone for all time will be forced to download that large file, even if it was removed from the project in the very next commit. Because it’s reachable from the history, it will always be there.
